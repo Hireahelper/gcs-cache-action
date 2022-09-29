@@ -6,6 +6,10 @@ inputs:
   bucket:
     description: Name of the bucket to store the cache into
     required: true
+  bucket-prefix:
+    description: Prefix of filename in bucket /(owner)/(repo)/(prefix)/(key.tar)
+    required: false
+
   path:
     description: Paths to store
     required: true

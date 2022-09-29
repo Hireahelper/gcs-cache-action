@@ -10,11 +10,11 @@ import { extractTar } from './tar-utils';
 
 async function getBestMatch(
   bucket: Bucket,
+  bucketPrefix: string,
   key: string,
   restoreKeys: string[],
 ): Promise<[File, Exclude<CacheHitKindState, 'none'>] | [null, 'none']> {
-  const folderPrefix = `${github.context.repo.owner}/${github.context.repo.repo}`;
-
+  const folderPrefix = getFolderPrefix(bucketPrefix);
   const exactFile = bucket.file(`${folderPrefix}/${key}.tar`);
   const [exactFileExists] = await exactFile.exists();
 
@@ -70,16 +70,25 @@ async function getBestMatch(
   return [null, 'none'];
 }
 
+function getFolderPrefix(bucketPrefix: string) {
+  const folderPrefix = `${github.context.repo.owner}/${github.context.repo.repo}`;
+
+  if (bucketPrefix) {
+    return '/' + bucketPrefix.replace(/^\/|\/$/, '');
+  }
+  return folderPrefix;
+}
+
 async function main() {
   const inputs = getInputs();
   const bucket = new Storage().bucket(inputs.bucket);
 
-  const folderPrefix = `${github.context.repo.owner}/${github.context.repo.repo}`;
+  const folderPrefix = getFolderPrefix(inputs.bucketPrefix);
   const exactFileName = `${folderPrefix}/${inputs.key}.tar`;
 
   const [bestMatch, bestMatchKind] = await core
     .group('🔍 Searching the best cache archive available', () =>
-      getBestMatch(bucket, inputs.key, inputs.restoreKeys),
+      getBestMatch(bucket, inputs.bucketPrefix, inputs.key, inputs.restoreKeys),
     )
     .catch((err) => {
       core.setFailed(err);
